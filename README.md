@@ -1,25 +1,20 @@
 # 股票分析系统 (Stock Analysis System)
 ## 提要
-stock_analyzer.py是gui界面分析a股的关键文件，在21-22行中记得填入apiurl防止无法使用ai分析
-## 特殊情况
-这种情况下为正常
-![image](https://github.com/user-attachments/assets/1b276236-10bc-45a0-aa12-ac0bd6a5ce9c)
+stock_analyzer.py是分析a股的关键文件，在21-22行中记得填入apiurl防止无法使用ai分析
 
 ## 项目简介 (Project Overview)
 
-这是一个专业的A股股票分析系统，提供全面的技术指标分析和投资建议。系统包括三个主要组件：
-- 单股票分析GUI
-- 批量股票扫描器
+这是一个专业的A股股票分析系统，提供全面的技术指标分析和投资建议。系统包括以下主要组件：
+- 股票分析引擎
 - 高级技术指标分析引擎
 
-This is a professional A-share stock analysis system that provides comprehensive technical indicator analysis and investment recommendations. The system includes three main components:
-- Single Stock Analysis GUI
-- Batch Stock Scanner
+This is a professional A-share stock analysis system that provides comprehensive technical indicator analysis and investment recommendations. The system includes the following main components:
+- Stock Analysis Engine
 - Advanced Technical Indicator Analysis Engine
 
 ## 功能特点 (Key Features)
 
-### 单股票分析 (Single Stock Analysis)
+### 股票分析 (Stock Analysis)
 - 实时计算多种技术指标
 - 生成详细的股票分析报告
 - 提供投资建议
@@ -42,7 +37,6 @@ This is a professional A-share stock analysis system that provides comprehensive
 
 ## 系统依赖 (System Dependencies)
 - Python 3.8+
-- PyQt6
 - Pandas
 - NumPy
 - AkShare
@@ -56,11 +50,6 @@ pip install -r requirements.txt
 ```
 
 ### 运行应用 (Run Application)
-#### 单股票分析GUI
-```bash
-python gui2.py
-```
-
 #### 全市场股票扫描
 ```bash
 python 全部股票分析推荐1.py

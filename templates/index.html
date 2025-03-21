@@ -19,9 +19,15 @@
                            class="w-full p-2 border rounded"
                            placeholder="输入股票代码（如：600000）">
                 </div>
-                <button onclick="analyzeSingleStock()"
-                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                    分析
+                <button id="analyzeSingleBtn" onclick="analyzeSingleStock()"
+                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                    <span id="analyzeSingleText">分析</span>
+                    <div id="analyzeSingleLoading" class="hidden ml-2">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
                 </button>
             </div>
 
@@ -33,27 +39,94 @@
                               class="w-full p-2 border rounded h-32"
                               placeholder="输入多个股票代码，每行一个"></textarea>
                 </div>
-                <button onclick="analyzeBatchStocks()"
-                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-                    批量分析
+                <button id="analyzeBatchBtn" onclick="analyzeBatchStocks()"
+                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                    <span id="analyzeBatchText">批量分析</span>
+                    <div id="analyzeBatchLoading" class="hidden ml-2">
+                        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
                 </button>
             </div>
         </div>
 
         <!-- 结果展示 -->
         <div id="results" class="mt-8 bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">分析结果</h2>
-            <div id="resultContent" class="prose"></div>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">分析结果</h2>
+            </div>
+            <div id="resultContent" class="prose">
+                <!-- 添加分析中的动画 -->
+                <div id="analyzingAnimation" class="hidden">
+                    <div class="flex flex-col items-center justify-center py-12">
+                        <div class="relative">
+                            <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
+                            <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0 left-0"></div>
+                        </div>
+                        <p class="text-gray-600 mt-4 text-lg">正在智能分析中，请稍候...</p>
+                        <div class="mt-2 text-sm text-gray-500">DeepSeek正在深度分析股票数据</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        // 添加loading状态控制函数
+        function setLoading(buttonId, isLoading) {
+            const button = document.getElementById(buttonId);
+            const text = document.getElementById(buttonId + 'Text');
+            const loading = document.getElementById(buttonId + 'Loading');
+            const analyzingAnimation = document.getElementById('analyzingAnimation');
+            
+            if (isLoading) {
+                if (button) button.disabled = true;
+                if (text) text.style.display = 'none';
+                if (loading) loading.classList.remove('hidden');
+                if (analyzingAnimation) analyzingAnimation.classList.remove('hidden');
+            } else {
+                if (button) button.disabled = false;
+                if (text) text.style.display = 'inline';
+                if (loading) loading.classList.add('hidden');
+                if (analyzingAnimation) analyzingAnimation.classList.add('hidden');
+            }
+        }
+
+        // 添加防重复点击控制
+        let isAnalyzing = false;
+
+        // 初始化函数
+        function initializeButtons() {
+            setLoading('analyzeSingleBtn', false);
+            setLoading('analyzeBatchBtn', false);
+        }
+
+        // 确保DOM加载完成后再执行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM加载完成，初始化按钮状态');
+            initializeButtons();
+        });
+
+        // 如果DOMContentLoaded已经触发，直接执行初始化
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            initializeButtons();
+        }
+
         async function analyzeSingleStock() {
+            if (isAnalyzing) {
+                return;
+            }
+
             const stockCode = document.getElementById('singleStock').value.trim();
             if (!stockCode) {
                 alert('请输入股票代码');
                 return;
             }
+
+            isAnalyzing = true;
+            setLoading('analyzeSingleBtn', true);
 
             try {
                 const response = await fetch('/api/analyze', {
@@ -72,10 +145,17 @@
                 }
             } catch (error) {
                 alert('请求失败: ' + error.message);
+            } finally {
+                isAnalyzing = false;
+                setLoading('analyzeSingleBtn', false);
             }
         }
 
         async function analyzeBatchStocks() {
+            if (isAnalyzing) {
+                return;
+            }
+
             const stocksText = document.getElementById('batchStocks').value.trim();
             if (!stocksText) {
                 alert('请输入股票代码');
@@ -83,6 +163,9 @@
             }
 
             const stockList = stocksText.split('\n').map(s => s.trim()).filter(s => s);
+
+            isAnalyzing = true;
+            setLoading('analyzeBatchBtn', true);
 
             try {
                 const response = await fetch('/api/batch-analyze', {
@@ -101,39 +184,119 @@
                 }
             } catch (error) {
                 alert('请求失败: ' + error.message);
+            } finally {
+                isAnalyzing = false;
+                setLoading('analyzeBatchBtn', false);
             }
         }
 
         function displayResults(results) {
             const resultContent = document.getElementById('resultContent');
+            const analyzingAnimation = document.getElementById('analyzingAnimation');
+            
+            // 隐藏分析中的动画
+            if (analyzingAnimation) {
+            analyzingAnimation.classList.add('hidden');
+            }
+            
             let html = '';
 
             results.forEach(result => {
                 html += `
-                    <div class="mb-8 p-4 border rounded">
-                        <h3 class="text-lg font-semibold mb-2">股票代码: ${result.stock_code}</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p><strong>分析日期:</strong> ${result.analysis_date}</p>
-                                <p><strong>当前价格:</strong> ¥${result.price.toFixed(2)}</p>
-                                <p><strong>价格变动:</strong> ${result.price_change.toFixed(2)}%</p>
-                            </div>
-                            <div>
-                                <p><strong>综合评分:</strong> ${result.score}分</p>
-                                <p><strong>投资建议:</strong> ${result.recommendation}</p>
-                                <p><strong>RSI指标:</strong> ${result.rsi.toFixed(2)}</p>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <h4 class="font-semibold mb-2">AI分析:</h4>
-                            <p class="whitespace-pre-line">${result.ai_analysis}</p>
-                        </div>
-                    </div>
-                `;
+<div class="mb-12">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-2xl font-bold">股票代码: ${result.stock_code} <span class="text-gray-600 text-xl ml-2">${result.stock_name}</span></h2>
+        </div>
+        <div class="text-sm text-gray-500">分析时间: ${result.analysis_date}</div>
+    </div>
+    
+    <!-- 基本信息表格 -->
+    <div class="mb-8">
+        <h3 class="text-xl font-semibold mb-4 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            基本信息
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg shadow-sm">
+                <tr class="bg-gray-50">
+                    <th class="px-6 py-3 border-b text-left text-sm font-medium text-gray-500 uppercase tracking-wider">当前价格</th>
+                    <th class="px-6 py-3 border-b text-left text-sm font-medium text-gray-500 uppercase tracking-wider">价格变动</th>
+                    <th class="px-6 py-3 border-b text-left text-sm font-medium text-gray-500 uppercase tracking-wider">综合评分</th>
+                    <th class="px-6 py-3 border-b text-left text-sm font-medium text-gray-500 uppercase tracking-wider">投资建议</th>
+                    <th class="px-6 py-3 border-b text-left text-sm font-medium text-gray-500 uppercase tracking-wider">RSI指标</th>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 border-b text-lg font-semibold">¥${result.price.toFixed(2)}</td>
+                    <td class="px-6 py-4 border-b text-lg font-semibold ${result.price_change >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${result.price_change.toFixed(2)}%
+                    </td>
+                    <td class="px-6 py-4 border-b text-lg font-semibold">${result.score}分</td>
+                    <td class="px-6 py-4 border-b text-lg font-semibold">${result.recommendation}</td>
+                    <td class="px-6 py-4 border-b text-lg font-semibold">${result.rsi.toFixed(2)}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- 技术指标表格 -->
+    <div class="mb-8">
+        <h3 class="text-xl font-semibold mb-4 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            技术指标
+        </h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg shadow-sm">
+                <tr class="bg-gray-50">
+                    <th class="px-6 py-3 border-b text-left text-sm font-medium text-gray-500 uppercase tracking-wider">均线趋势</th>
+                    <th class="px-6 py-3 border-b text-left text-sm font-medium text-gray-500 uppercase tracking-wider">MACD信号</th>
+                    <th class="px-6 py-3 border-b text-left text-sm font-medium text-gray-500 uppercase tracking-wider">成交量状态</th>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 border-b text-lg font-semibold ${result.ma_trend === 'UP' ? 'text-green-600' : 'text-red-600'}">
+                        ${result.ma_trend}
+                    </td>
+                    <td class="px-6 py-4 border-b text-lg font-semibold ${result.macd_signal === 'BUY' ? 'text-green-600' : 'text-red-600'}">
+                        ${result.macd_signal}
+                    </td>
+                    <td class="px-6 py-4 border-b text-lg font-semibold">${result.volume_status}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- AI分析部分 -->
+    <div class="mt-8">
+        <h3 class="text-xl font-semibold mb-4 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            AI分析
+        </h3>
+        <div class="bg-gray-50 p-6 rounded-lg shadow-sm prose prose-lg max-w-none">
+            <style>
+                .prose h1 { margin-top: 2em; margin-bottom: 1em; }
+                .prose h2 { margin-top: 1.75em; margin-bottom: 0.75em; }
+                .prose h3 { margin-top: 1.5em; margin-bottom: 0.75em; }
+                .prose p { margin-top: 1em; margin-bottom: 1em; line-height: 1.8; }
+                .prose ul, .prose ol { margin-top: 1em; margin-bottom: 1em; padding-left: 1.5em; }
+                .prose li { margin-top: 0.5em; margin-bottom: 0.5em; }
+            </style>
+            ${marked.parse(result.ai_analysis)}
+        </div>
+    </div>
+</div>
+`;
             });
 
             resultContent.innerHTML = html;
         }
     </script>
+    <!-- 添加marked.js库用于markdown解析 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>
 </html>

@@ -6,6 +6,8 @@ import requests
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 import logging
+from openai import OpenAI
+import akshare as ak
 
 class StockAnalyzer:
     def __init__(self, initial_cash=1000000):
@@ -18,8 +20,8 @@ class StockAnalyzer:
         load_dotenv()
         
         # 设置 Gemini API
-        self.gemini_api_url = "https://api.xxx.xxx"
-        self.gemini_api_key = os.getenv('GEMINI_API_KEY')
+        self.deepseek_api_url = "https://api.deepseek.com"
+        self.deepseek_api_key = os.getenv('DS_API_KEY')
         
         # 配置参数
         self.params = {
@@ -31,10 +33,13 @@ class StockAnalyzer:
             'atr_period': 14
         }
         
+        # 初始化股票名称缓存
+        self._stock_name_cache = {}  # 股票代码到名称的映射
+        self._stock_name_cache_time = None
+        self._cache_validity_hours = 24  # 缓存有效期（小时）
+        
     def get_stock_data(self, stock_code, start_date=None, end_date=None):
         """获取股票数据"""
-        import akshare as ak
-        
         if start_date is None:
             start_date = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
         if end_date is None:
@@ -188,7 +193,7 @@ class StockAnalyzer:
             raise
             
     def get_ai_analysis(self, df, stock_code):
-        """使用 Gemini 进行 AI 分析"""
+        """使用 deepSeek 进行 AI 分析"""
         try:
             recent_data = df.tail(14).to_dict('records')
             
@@ -218,29 +223,14 @@ class StockAnalyzer:
             
             请基于技术指标和市场动态进行分析，给出具体数据支持。
             """
-            
-            headers = {
-                "Authorization": f"Bearer {self.gemini_api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            data = {
-                "model": "gemini-1.5-flash",
-                "messages": [{"role": "user", "content": prompt}]
-            }
-            
-            response = requests.post(
-                f"{self.gemini_api_url}/v1/chat/completions",
-                headers=headers,
-                json=data,
-                timeout=10
+            client = OpenAI(api_key=self.deepseek_api_key,base_url=self.deepseek_api_url)
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": prompt}],
+                stream=False
             )
-            
-            if response.status_code == 200:
-                return response.json()['choices'][0]['message']['content']
-            else:
-                return "AI 分析暂时无法使用"
-                
+        
+            return  response.choices[0].message.content
         except Exception as e:
             self.logger.error(f"AI 分析发生错误: {str(e)}")
             return "AI 分析过程中发生错误"
@@ -258,11 +248,45 @@ class StockAnalyzer:
         else:
             return '强烈建议卖出'
             
-    def analyze_stock(self, stock_code):
-        """分析单个股票"""
+    def _get_stock_info(self, stock_code: str) -> str:
+        """获取股票名称，使用缓存机制"""
+        current_time = datetime.now()
+        
+        # 如果缓存不存在或已过期，更新缓存
+        if (self._stock_name_cache_time is None or 
+            (current_time - self._stock_name_cache_time).total_seconds() > self._cache_validity_hours * 3600):
+            
+            try:
+                # 获取所有股票信息
+                stock_info = ak.stock_zh_a_spot_em()
+                # 只缓存代码和名称的映射
+                self._stock_name_cache = dict(zip(stock_info['代码'], stock_info['名称']))
+                self._stock_name_cache_time = current_time
+                self.logger.info("已更新股票名称缓存")
+            except Exception as e:
+                self.logger.error(f"更新股票名称缓存失败: {str(e)}")
+                raise
+        
         try:
+            if stock_code not in self._stock_name_cache:
+                raise KeyError(f"未找到股票代码: {stock_code}")
+            return self._stock_name_cache[stock_code]
+        except Exception as e:
+            self.logger.error(f"获取股票名称失败: {str(e)}")
+            raise
+            
+    def analyze_stock(self, stock_code: str) -> Dict:
+        """分析单只股票"""
+        try:
+            # 获取股票名称（使用缓存机制）
+            stock_name = self._get_stock_info(stock_code)
+            
+            # 获取历史数据
+            end_date = datetime.now().strftime('%Y%m%d')
+            start_date = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
+            
             # 获取股票数据
-            df = self.get_stock_data(stock_code)
+            df = self.get_stock_data(stock_code, start_date, end_date)
             
             # 计算技术指标
             df = self.calculate_indicators(df)
@@ -277,8 +301,8 @@ class StockAnalyzer:
             # 生成报告（保持原有格式）
             report = {
                 'stock_code': stock_code,
-                'analysis_date': datetime.now().strftime('%Y-%m-%d'),
-                'score': score,
+                'stock_name': stock_name,
+                'analysis_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'price': latest['close'],
                 'price_change': (latest['close'] - prev['close']) / prev['close'] * 100,
                 'ma_trend': 'UP' if latest['MA5'] > latest['MA20'] else 'DOWN',

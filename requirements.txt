@@ -1,15 +1,11 @@
 # 基础科学计算和数据处理库
 numpy==2.0.0
 pandas==2.2.2
-scipy==1.15.1
+scipy
 
 # 数据获取和分析库
-akshare==1.16.16
+akshare
 tqdm==4.67.1
-
-# GUI库
-PyQt6==6.8.1
-markdown2==2.5.3
 
 # 网络和API请求
 requests==2.32.3
@@ -31,3 +27,5 @@ html5lib==1.1
 lxml==4.9.4
 jsonpath==0.82.2
 openpyxl==3.1.5
+openai
+flask
