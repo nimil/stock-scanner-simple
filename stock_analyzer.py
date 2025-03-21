@@ -8,9 +8,13 @@ from dotenv import load_dotenv
 import logging
 from openai import OpenAI
 import akshare as ak
+from base_analyzer import BaseAnalyzer
 
-class StockAnalyzer:
+class StockAnalyzer(BaseAnalyzer):
+    """股票分析器"""
     def __init__(self, initial_cash=1000000):
+        super().__init__(initial_cash)
+        
         # 设置日志
         logging.basicConfig(level=logging.INFO,
                           format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,7 +23,7 @@ class StockAnalyzer:
         # 加载环境变量
         load_dotenv()
         
-        # 设置 Gemini API
+        # 设置 deepseek API
         self.deepseek_api_url = "https://api.deepseek.com"
         self.deepseek_api_key = os.getenv('DS_API_KEY')
         
@@ -77,6 +81,62 @@ class StockAnalyzer:
         except Exception as e:
             self.logger.error(f"获取股票数据失败: {str(e)}")
             raise Exception(f"获取股票数据失败: {str(e)}")
+            
+    def get_etf_data(self, etf_code, start_date=None, end_date=None):
+        """获取ETF基金数据"""
+        try:
+            if start_date is None:
+                start_date = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
+            if end_date is None:
+                end_date = datetime.now().strftime('%Y%m%d')
+                
+            # 使用 akshare 获取ETF数据
+            df = ak.fund_etf_hist_em(symbol=etf_code, 
+                                    start_date=start_date, 
+                                    end_date=end_date,
+                                    adjust="qfq")
+            
+            # 重命名列名以匹配分析需求
+            df = df.rename(columns={
+                "日期": "date",
+                "开盘": "open",
+                "收盘": "close",
+                "最高": "high",
+                "最低": "low",
+                "成交量": "volume"
+            })
+            
+            # 确保日期格式正确
+            df['date'] = pd.to_datetime(df['date'])
+            
+            # 数据类型转换
+            numeric_columns = ['open', 'close', 'high', 'low', 'volume']
+            df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce')
+            
+            # 删除空值
+            df = df.dropna()
+            
+            # 按日期排序
+            df = df.sort_values('date')
+            
+            # 筛选日期范围
+            if start_date:
+                start_date = pd.to_datetime(start_date)
+                df = df[df['date'] >= start_date]
+            if end_date:
+                end_date = pd.to_datetime(end_date)
+                df = df[df['date'] <= end_date]
+                
+            # 取最近一年数据
+            if not start_date and not end_date:
+                one_year_ago = datetime.now() - timedelta(days=365)
+                df = df[df['date'] >= one_year_ago]
+                
+            return df
+            
+        except Exception as e:
+            self.logger.error(f"获取ETF数据失败: {str(e)}")
+            raise Exception(f"获取ETF数据失败: {str(e)}")
             
     def calculate_ema(self, series, period):
         """计算指数移动平均线"""
@@ -192,7 +252,62 @@ class StockAnalyzer:
             self.logger.error(f"计算评分时出错: {str(e)}")
             raise
             
-    def get_ai_analysis(self, df, stock_code):
+    def calculate_etf_score(self, df):
+        """计算ETF评分"""
+        try:
+            score = 60  # 基础分
+            latest = df.iloc[-1]
+            
+            # 趋势得分
+            if latest['MA5'] > latest['MA20']:
+                score += 10
+            if latest['MA20'] > latest['MA60']:
+                score += 10
+                
+            # RSI得分
+            rsi = latest['RSI']
+            if 40 <= rsi <= 60:
+                score += 10
+            elif 30 <= rsi <= 70:
+                score += 5
+                
+            # MACD得分
+            if latest['MACD'] > latest['Signal']:
+                score += 10
+                
+            # 成交量分析
+            if latest['Volume_Ratio'] > 1.2:
+                score += 10
+                
+            return min(100, score)
+            
+        except Exception as e:
+            self.logger.error(f"计算ETF评分时出错: {str(e)}")
+            raise
+            
+    def get_recommendation(self, score):
+        """根据得分给出建议"""
+        if score >= 80:
+            return '强烈推荐买入'
+        elif score >= 60:
+            return '建议买入'
+        elif score >= 40:
+            return '观望'
+        elif score >= 20:
+            return '建议卖出'
+        else:
+            return '强烈建议卖出'
+            
+    def get_etf_recommendation(self, score):
+        """根据得分给出ETF建议"""
+        if score >= 80:
+            return '建议关注'
+        elif score >= 60:
+            return '可以观望'
+        else:
+            return '建议谨慎'
+            
+    def get_ai_analysis(self, df, code, asset_type="股票"):
         """使用 deepSeek 进行 AI 分析"""
         try:
             recent_data = df.tail(14).to_dict('records')
@@ -205,7 +320,7 @@ class StockAnalyzer:
             }
             
             prompt = f"""
-            分析股票 {stock_code}：
+            分析{asset_type} {code}：
 
             技术指标概要：
             {technical_summary}
@@ -230,23 +345,10 @@ class StockAnalyzer:
                 stream=False
             )
         
-            return  response.choices[0].message.content
+            return response.choices[0].message.content
         except Exception as e:
             self.logger.error(f"AI 分析发生错误: {str(e)}")
             return "AI 分析过程中发生错误"
-            
-    def get_recommendation(self, score):
-        """根据得分给出建议"""
-        if score >= 80:
-            return '强烈推荐买入'
-        elif score >= 60:
-            return '建议买入'
-        elif score >= 40:
-            return '观望'
-        elif score >= 20:
-            return '建议卖出'
-        else:
-            return '强烈建议卖出'
             
     def _get_stock_info(self, stock_code: str) -> str:
         """获取股票名称，使用缓存机制"""
@@ -309,14 +411,53 @@ class StockAnalyzer:
                 'rsi': latest['RSI'],
                 'macd_signal': 'BUY' if latest['MACD'] > latest['Signal'] else 'SELL',
                 'volume_status': 'HIGH' if latest['Volume_Ratio'] > 1.5 else 'NORMAL',
+                'score': score,
                 'recommendation': self.get_recommendation(score),
-                'ai_analysis': self.get_ai_analysis(df, stock_code)
+                'ai_analysis': self.get_ai_analysis(df, stock_code, "股票")
             }
             
             return report
             
         except Exception as e:
             self.logger.error(f"分析股票时出错: {str(e)}")
+            raise
+            
+    def analyze_etf(self, etf_code: str) -> Dict:
+        """分析ETF基金"""
+        try:
+            # 获取ETF数据
+            df = self.get_etf_data(etf_code)
+            
+            # 计算技术指标
+            df = self.calculate_indicators(df)
+            
+            # 评分系统
+            score = self.calculate_etf_score(df)
+            
+            # 获取最新数据
+            latest = df.iloc[-1]
+            prev = df.iloc[-2]
+            
+            # 生成报告
+            report = {
+                'stock_code': etf_code,
+                'stock_name': f'ETF基金({etf_code})',
+                'analysis_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'price': float(latest['close']),
+                'price_change': float((latest['close'] - prev['close']) / prev['close'] * 100),
+                'ma_trend': 'UP' if latest['MA5'] > latest['MA20'] else 'DOWN',
+                'rsi': float(latest['RSI']),
+                'macd_signal': 'BUY' if latest['MACD'] > latest['Signal'] else 'SELL',
+                'volume_status': '放量' if latest['Volume_Ratio'] > 1.2 else '缩量',
+                'score': score,
+                'recommendation': self.get_etf_recommendation(score),
+                'ai_analysis': self.get_ai_analysis(df, etf_code, "ETF基金")
+            }
+            
+            return report
+            
+        except Exception as e:
+            self.logger.error(f"分析ETF时出错: {str(e)}")
             raise
             
     def scan_market(self, stock_list, min_score=60):
@@ -335,3 +476,20 @@ class StockAnalyzer:
         # 按得分排序
         recommendations.sort(key=lambda x: x['score'], reverse=True)
         return recommendations
+    
+    def scan_etf_market(self, etf_list, min_score=60):
+        """扫描ETF市场，寻找符合条件的ETF"""
+        recommendations = []
+        
+        for etf_code in etf_list:
+            try:
+                report = self.analyze_etf(etf_code)
+                if report['score'] >= min_score:
+                    recommendations.append(report)
+            except Exception as e:
+                self.logger.error(f"分析ETF {etf_code} 时出错: {str(e)}")
+                continue
+                
+        # 按得分排序
+        recommendations.sort(key=lambda x: x['score'], reverse=True)
+        return recommendations 

@@ -1,8 +1,8 @@
 # 股票分析系统 (Stock Analysis System)
 ## 提要
-需要在环境中配置
-DS_API_KEY 使用deepseek-v3分析
-stock_analyzer.py是分析a股的关键文件，在21-22行中记得填入apiurl防止无法使用ai分析
+- 基于 https://github.com/DR-lin-eng/stock-scanner 二次修改，感谢原作者
+- 需要在环境中配置DS_API_KEY 使用deepseek-v3分析
+- stock_analyzer.py是分析a股的关键文件，在21-22行中记得填入apiurl防止无法使用ai分析
 
 ## 项目简介 (Project Overview)
 
@@ -58,7 +58,7 @@ python 全部股票分析推荐1.py
 ```
 
 ## 配置 (Configuration)
-- 在 `.env` 文件中配置 Gemini API 密钥
+- 在 `.env` 文件中配置 deepseek API 密钥（DS_API_KEY）
 - 可在 `stock_analyzer.py` 中调整技术指标参数
 
 ## 输出 (Outputs)
