@@ -1,5 +1,7 @@
 # 股票分析系统 (Stock Analysis System)
 ## 提要
+需要在环境中配置
+DS_API_KEY 使用deepseek-v3分析
 stock_analyzer.py是分析a股的关键文件，在21-22行中记得填入apiurl防止无法使用ai分析
 
 ## 项目简介 (Project Overview)
