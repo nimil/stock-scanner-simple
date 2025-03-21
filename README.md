@@ -9,6 +9,7 @@
 - 新增场内ETF功能
 - 新增导出功能
 - 新增股票名功能
+- 新增指数分析功能
 
 ## 项目简介 (Project Overview)
 
@@ -26,7 +27,7 @@ This is a professional A-share stock analysis system that provides comprehensive
 - 实时计算多种技术指标
 - 生成详细的股票分析报告
 - 提供投资建议
-- 支持单股和批量分析
+- 支持单股和指数分析
 
 ## 技术指标 (Technical Indicators)
 - 移动平均线 (Moving Average)
@@ -52,7 +53,7 @@ pip install -r requirements.txt
 ```
 
 ## 配置 (Configuration)
-- 在 `.env` 文件中配置 deepseek API 密钥（DS_API_KEY）
+- 新建 `.env` 在文件中配置 deepseek API 密钥（DS_API_KEY）
 - 可在 `stock_analyzer.py` 中调整技术指标参数
 
 ## 注意事项 (Notes)
