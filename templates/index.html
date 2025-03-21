@@ -36,7 +36,7 @@
             </div>
 
             <!-- 批量分析 -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
+            <!-- <div class="bg-white p-6 rounded-lg shadow-md">
                 <h2 class="text-xl font-semibold mb-4">批量分析</h2>
                 <div class="mb-4">
                     <select id="batchAnalysisType" class="w-full p-2 border rounded mb-4">
@@ -57,7 +57,7 @@
                         </svg>
                     </div>
                 </button>
-            </div>
+            </div> -->
         </div>
 
         <!-- 结果展示 -->
@@ -374,21 +374,34 @@
                 title.style.fontSize = '24px';
                 title.innerText = `资产分析报告 - ${dateStr}`;
                 
-                // 添加报告生成时间
-                const subtitle = document.createElement('p');
-                subtitle.style.textAlign = 'center';
-                subtitle.style.marginBottom = '30px';
-                subtitle.style.color = '#6b7280'; // 灰色
-                subtitle.innerText = `报告生成时间: ${now.toLocaleString('zh-CN')}`;
+                // 添加免责声明
+                const disclaimer = document.createElement('p');
+                disclaimer.style.textAlign = 'center';
+                disclaimer.style.marginBottom = '30px';
+                disclaimer.style.color = '#dc2626'; // 红色
+                disclaimer.style.fontSize = '14px';
+                disclaimer.style.fontWeight = 'bold';
+                disclaimer.innerText = `免责声明：本报告仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。`;
                 
-                // 将标题添加到容器最前面
-                element.insertBefore(subtitle, element.firstChild);
+                // 将标题和免责声明添加到容器最前面
+                element.insertBefore(disclaimer, element.firstChild);
                 element.insertBefore(title, element.firstChild);
+                
+                // 添加生成时间（小字，放在底部）
+                const timestamp = document.createElement('p');
+                timestamp.style.textAlign = 'right';
+                timestamp.style.marginTop = '30px';
+                timestamp.style.color = '#9ca3af'; // 浅灰色
+                timestamp.style.fontSize = '12px';
+                timestamp.innerText = `报告生成时间: ${now.toLocaleString('zh-CN')}`;
+                
+                // 添加到容器末尾
+                element.appendChild(timestamp);
                 
                 // 设置PDF选项
                 const opt = {
                     margin: [10, 10, 10, 10],
-                    filename: `资产分析报告_${stockCode}_${stockName.replace(/[^\w\u4e00-\u9fa5]/g, '')}_${dateStr}.pdf`,
+                    filename: `分析报告_${stockCode}_${stockName.replace(/[^\w\u4e00-\u9fa5]/g, '')}_${dateStr}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true, letterRendering: true },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },

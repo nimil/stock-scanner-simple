@@ -42,6 +42,10 @@ class StockAnalyzer(BaseAnalyzer):
         self._stock_name_cache_time = None
         self._cache_validity_hours = 24  # 缓存有效期（小时）
         
+        # 初始化ETF名称缓存
+        self._etf_name_cache = {}  # ETF代码到名称的映射
+        self._etf_name_cache_time = None
+        
     def get_stock_data(self, stock_code, start_date=None, end_date=None):
         """获取股票数据"""
         if start_date is None:
@@ -116,23 +120,7 @@ class StockAnalyzer(BaseAnalyzer):
             # 删除空值
             df = df.dropna()
             
-            # 按日期排序
-            df = df.sort_values('date')
-            
-            # 筛选日期范围
-            if start_date:
-                start_date = pd.to_datetime(start_date)
-                df = df[df['date'] >= start_date]
-            if end_date:
-                end_date = pd.to_datetime(end_date)
-                df = df[df['date'] <= end_date]
-                
-            # 取最近一年数据
-            if not start_date and not end_date:
-                one_year_ago = datetime.now() - timedelta(days=365)
-                df = df[df['date'] >= one_year_ago]
-                
-            return df
+            return df.sort_values('date')
             
         except Exception as e:
             self.logger.error(f"获取ETF数据失败: {str(e)}")
@@ -377,6 +365,34 @@ class StockAnalyzer(BaseAnalyzer):
             self.logger.error(f"获取股票名称失败: {str(e)}")
             raise
             
+    def _get_etf_info(self, etf_code: str) -> str:
+        """获取ETF名称，使用缓存机制"""
+        current_time = datetime.now()
+        
+        # 如果缓存不存在或已过期，更新缓存
+        if (self._etf_name_cache_time is None or 
+            (current_time - self._etf_name_cache_time).total_seconds() > self._cache_validity_hours * 3600):
+            
+            try:
+                # 获取所有ETF基金信息
+                etf_info = ak.fund_name_em()
+                # 只缓存代码和名称的映射
+                self._etf_name_cache = dict(zip(etf_info['基金代码'], etf_info['基金简称']))
+                self._etf_name_cache_time = current_time
+                self.logger.info("已更新ETF名称缓存")
+            except Exception as e:
+                self.logger.error(f"更新ETF名称缓存失败: {str(e)}")
+                raise
+        
+        try:
+            if etf_code not in self._etf_name_cache:
+                self.logger.warning(f"未找到ETF代码: {etf_code}, 使用默认名称")
+                return f"ETF基金({etf_code})"
+            return self._etf_name_cache[etf_code]
+        except Exception as e:
+            self.logger.error(f"获取ETF名称失败: {str(e)}")
+            return f"ETF基金({etf_code})"  # 返回默认名称
+            
     def analyze_stock(self, stock_code: str) -> Dict:
         """分析单只股票"""
         try:
@@ -425,6 +441,9 @@ class StockAnalyzer(BaseAnalyzer):
     def analyze_etf(self, etf_code: str) -> Dict:
         """分析ETF基金"""
         try:
+            # 获取ETF名称
+            etf_name = self._get_etf_info(etf_code)
+            
             # 获取ETF数据
             df = self.get_etf_data(etf_code)
             
@@ -441,7 +460,7 @@ class StockAnalyzer(BaseAnalyzer):
             # 生成报告
             report = {
                 'stock_code': etf_code,
-                'stock_name': f'ETF基金({etf_code})',
+                'stock_name': etf_name,
                 'analysis_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'price': float(latest['close']),
                 'price_change': float((latest['close'] - prev['close']) / prev['close'] * 100),

@@ -4,6 +4,12 @@
 - 需要在环境中配置DS_API_KEY 使用deepseek-v3分析
 - stock_analyzer.py是分析a股的关键文件，在21-22行中记得填入apiurl防止无法使用ai分析
 
+## 基于原项目新增/删除功能
+- 删除pythonGUI，仅保留html
+- 新增场内ETF功能
+- 新增导出功能
+- 新增股票名功能
+
 ## 项目简介 (Project Overview)
 
 这是一个专业的A股股票分析系统，提供全面的技术指标分析和投资建议。系统包括以下主要组件：
@@ -21,12 +27,6 @@ This is a professional A-share stock analysis system that provides comprehensive
 - 生成详细的股票分析报告
 - 提供投资建议
 - 支持单股和批量分析
-
-### 全市场扫描 (Market-Wide Scanning)
-- 扫描全部A股股票
-- 根据多维度技术指标进行评分
-- 筛选高潜力股票
-- 按价格区间生成分析报告
 
 ## 技术指标 (Technical Indicators)
 - 移动平均线 (Moving Average)
@@ -60,11 +60,6 @@ python 全部股票分析推荐1.py
 ## 配置 (Configuration)
 - 在 `.env` 文件中配置 deepseek API 密钥（DS_API_KEY）
 - 可在 `stock_analyzer.py` 中调整技术指标参数
-
-## 输出 (Outputs)
-分析结果将保存在 `scanner` 目录下：
-- `price_XX_YY.txt`：按价格区间的详细分析
-- `summary.txt`：市场扫描汇总报告
 
 ## 注意事项 (Notes)
 - 股票分析仅供参考，不构成投资建议
