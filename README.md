@@ -51,12 +51,6 @@ This is a professional A-share stock analysis system that provides comprehensive
 pip install -r requirements.txt
 ```
 
-### 运行应用 (Run Application)
-#### 全市场股票扫描
-```bash
-python 全部股票分析推荐1.py
-```
-
 ## 配置 (Configuration)
 - 在 `.env` 文件中配置 deepseek API 密钥（DS_API_KEY）
 - 可在 `stock_analyzer.py` 中调整技术指标参数
