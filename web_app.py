@@ -22,6 +22,9 @@ def analyze():
         if asset_type == 'etf':
             # 调用StockAnalyzer中处理ETF的方法
             result = analyzer.analyze_etf(stock_code)
+        elif asset_type == 'index':
+            # 调用StockAnalyzer中处理指数的方法
+            result = analyzer.analyze_index(stock_code)
         else:
             result = analyzer.analyze_stock(stock_code)
             

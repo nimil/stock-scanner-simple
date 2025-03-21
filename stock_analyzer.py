@@ -46,6 +46,17 @@ class StockAnalyzer(BaseAnalyzer):
         self._etf_name_cache = {}  # ETF代码到名称的映射
         self._etf_name_cache_time = None
         
+        # 初始化指数名称映射
+        self._index_names = {
+            '000001': '上证指数',
+            '399001': '深证成指',
+            '399006': '创业板指',
+            '000016': '上证50',
+            '000300': '沪深300',
+            '000905': '中证500',
+            '000852': '中证1000'
+        }
+        
     def get_stock_data(self, stock_code, start_date=None, end_date=None):
         """获取股票数据"""
         if start_date is None:
@@ -511,4 +522,128 @@ class StockAnalyzer(BaseAnalyzer):
                 
         # 按得分排序
         recommendations.sort(key=lambda x: x['score'], reverse=True)
-        return recommendations 
+        return recommendations
+
+    def get_index_data(self, index_code, start_date=None, end_date=None):
+        """获取指数数据"""
+        try:
+            if start_date is None:
+                start_date = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
+            if end_date is None:
+                end_date = datetime.now().strftime('%Y%m%d')
+                
+            # 使用 akshare 获取指数数据
+            df = ak.index_zh_a_hist(symbol=index_code, 
+                                  start_date=start_date, 
+                                  end_date=end_date)
+            
+            # 重命名列名以匹配分析需求
+            df = df.rename(columns={
+                "日期": "date",
+                "开盘": "open",
+                "收盘": "close",
+                "最高": "high",
+                "最低": "low",
+                "成交量": "volume"
+            })
+            
+            # 确保日期格式正确
+            df['date'] = pd.to_datetime(df['date'])
+            
+            # 数据类型转换
+            numeric_columns = ['open', 'close', 'high', 'low', 'volume']
+            df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce')
+            
+            # 删除空值
+            df = df.dropna()
+            
+            return df.sort_values('date')
+            
+        except Exception as e:
+            self.logger.error(f"获取指数数据失败: {str(e)}")
+            raise Exception(f"获取指数数据失败: {str(e)}")
+
+    def calculate_index_score(self, df):
+        """计算指数评分"""
+        try:
+            score = 50  # 基础分
+            latest = df.iloc[-1]
+            
+            # 趋势得分 (20分)
+            if latest['MA5'] > latest['MA20']:
+                score += 10
+            if latest['MA20'] > latest['MA60']:
+                score += 10
+                
+            # RSI得分 (10分)
+            rsi = latest['RSI']
+            if 40 <= rsi <= 60:
+                score += 10
+            elif 30 <= rsi <= 70:
+                score += 5
+                
+            # MACD得分 (10分)
+            if latest['MACD'] > latest['Signal']:
+                score += 10
+                
+            # 成交量分析 (10分)
+            if latest['Volume_Ratio'] > 1.2:
+                score += 10
+                
+            return min(100, score)
+            
+        except Exception as e:
+            self.logger.error(f"计算指数评分时出错: {str(e)}")
+            raise
+
+    def get_index_recommendation(self, score):
+        """根据得分给出指数建议"""
+        if score >= 80:
+            return '市场强势，可积极参与'
+        elif score >= 60:
+            return '市场偏强，可择机参与'
+        elif score >= 40:
+            return '市场震荡，保持谨慎'
+        else:
+            return '市场偏弱，建议观望'
+
+    def analyze_index(self, index_code: str) -> Dict:
+        """分析指数"""
+        try:
+            # 获取指数名称
+            index_name = self._index_names.get(index_code, f"指数({index_code})")
+            
+            # 获取指数数据
+            df = self.get_index_data(index_code)
+            
+            # 计算技术指标
+            df = self.calculate_indicators(df)
+            
+            # 评分系统
+            score = self.calculate_index_score(df)
+            
+            # 获取最新数据
+            latest = df.iloc[-1]
+            prev = df.iloc[-2]
+            
+            # 生成报告
+            report = {
+                'stock_code': index_code,
+                'stock_name': index_name,
+                'analysis_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'price': float(latest['close']),
+                'price_change': float((latest['close'] - prev['close']) / prev['close'] * 100),
+                'ma_trend': 'UP' if latest['MA5'] > latest['MA20'] else 'DOWN',
+                'rsi': float(latest['RSI']),
+                'macd_signal': 'BUY' if latest['MACD'] > latest['Signal'] else 'SELL',
+                'volume_status': '放量' if latest['Volume_Ratio'] > 1.2 else '缩量',
+                'score': score,
+                'recommendation': self.get_index_recommendation(score),
+                'ai_analysis': self.get_ai_analysis(df, index_code, "指数")
+            }
+            
+            return report
+            
+        except Exception as e:
+            self.logger.error(f"分析指数时出错: {str(e)}")
+            raise 
