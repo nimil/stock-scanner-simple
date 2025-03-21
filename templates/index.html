@@ -35,21 +35,20 @@
                 </button>
             </div>
 
-            <!-- 批量分析 -->
-            <!-- <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4">批量分析</h2>
+            <!-- 修改指数分析 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">指数分析</h2>
                 <div class="mb-4">
                     <select id="batchAnalysisType" class="w-full p-2 border rounded mb-4">
-                        <option value="stock">股票</option>
-                        <option value="etf">ETF基金</option>
+                        <option value="stock">A股</option>
                     </select>
-                    <textarea id="batchStocks" 
-                              class="w-full p-2 border rounded h-32"
-                              placeholder="输入多个代码，每行一个"></textarea>
+                    <select id="batchAnalysisType" class="w-full p-2 border rounded mb-4">
+                        <option value="000001">上证指数</option>
+                    </select>
                 </div>
                 <button id="analyzeBatchBtn" onclick="analyzeBatchStocks()"
                         class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
-                    <span id="analyzeBatchText">批量分析</span>
+                    <span id="analyzeBatchText">指数分析</span>
                     <div id="analyzeBatchLoading" class="hidden ml-2">
                         <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -57,7 +56,7 @@
                         </svg>
                     </div>
                 </button>
-            </div> -->
+            </div>
         </div>
 
         <!-- 结果展示 -->
