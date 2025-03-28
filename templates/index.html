@@ -103,11 +103,13 @@
                 if (text) text.style.display = 'none';
                 if (loading) loading.classList.remove('hidden');
                 if (analyzingAnimation) analyzingAnimation.classList.remove('hidden');
+                isAnalyzing = true;
             } else {
                 if (button) button.disabled = false;
                 if (text) text.style.display = 'inline';
                 if (loading) loading.classList.add('hidden');
                 if (analyzingAnimation) analyzingAnimation.classList.add('hidden');
+                isAnalyzing = false;
             }
         }
 
@@ -144,6 +146,20 @@
                 return;
             }
 
+            // 清除之前的结果
+            const resultContent = document.getElementById('resultContent');
+            const analyzingAnimation = document.getElementById('analyzingAnimation');
+            const exportBtn = document.getElementById('exportPdfBtn');
+            
+            // 只清除结果内容，保留分析动画
+            const resultItems = resultContent.querySelectorAll('.result-item');
+            resultItems.forEach(item => item.remove());
+            
+            analyzingAnimation.classList.remove('hidden');
+            if (exportBtn) {
+                exportBtn.style.display = 'none';
+            }
+
             isAnalyzing = true;
             setLoading('analyzeSingleBtn', true);
 
@@ -164,10 +180,11 @@
                     displayResults([result]);
                 } else {
                     alert(result.error || '分析失败');
+                    isAnalyzing = false;
+                    setLoading('analyzeSingleBtn', false);
                 }
             } catch (error) {
                 alert('请求失败: ' + error.message);
-            } finally {
                 isAnalyzing = false;
                 setLoading('analyzeSingleBtn', false);
             }
@@ -179,6 +196,20 @@
             }
 
             const indexCode = document.getElementById('indexType').value;
+            
+            // 清除之前的结果
+            const resultContent = document.getElementById('resultContent');
+            const analyzingAnimation = document.getElementById('analyzingAnimation');
+            const exportBtn = document.getElementById('exportPdfBtn');
+            
+            // 只清除结果内容，保留分析动画
+            const resultItems = resultContent.querySelectorAll('.result-item');
+            resultItems.forEach(item => item.remove());
+            
+            analyzingAnimation.classList.remove('hidden');
+            if (exportBtn) {
+                exportBtn.style.display = 'none';
+            }
             
             isAnalyzing = true;
             setLoading('analyzeIndexBtn', true);
@@ -200,10 +231,11 @@
                     displayResults([result]);
                 } else {
                     alert(result.error || '分析失败');
+                    isAnalyzing = false;
+                    setLoading('analyzeIndexBtn', false);
                 }
             } catch (error) {
                 alert('请求失败: ' + error.message);
-            } finally {
                 isAnalyzing = false;
                 setLoading('analyzeIndexBtn', false);
             }
@@ -224,8 +256,11 @@
                 exportBtn.style.display = 'flex';
             }
             
-            let html = '';
-
+            // 清除之前的结果内容
+            const existingResults = resultContent.querySelectorAll('.result-item');
+            existingResults.forEach(item => item.remove());
+            
+            // 添加新的结果
             results.forEach(result => {
                 // 确定显示的标题（股票、ETF或指数）
                 let assetType = '股票';
@@ -235,8 +270,12 @@
                     assetType = '指数';
                 }
                 
-                html += `
-<div class="mb-12 result-item" data-code="${result.stock_code}" data-name="${result.stock_name}">
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'mb-12 result-item';
+                resultDiv.setAttribute('data-code', result.stock_code);
+                resultDiv.setAttribute('data-name', result.stock_name);
+                
+                resultDiv.innerHTML = `
     <div class="flex items-center justify-between mb-6">
         <div>
             <h2 class="text-2xl font-bold">${assetType}代码: ${result.stock_code} <span class="text-gray-600 text-xl ml-2">${result.stock_name}</span></h2>
@@ -322,13 +361,12 @@
             ${marked.parse(result.ai_analysis)}
         </div>
     </div>
-</div>
-`;
+</div>`;
+                
+                resultContent.appendChild(resultDiv);
             });
-
-            resultContent.innerHTML = html;
             
-            // 重置分析状态，允许用户继续分析
+            // 重置分析状态
             isAnalyzing = false;
             setLoading('analyzeSingleBtn', false);
             setLoading('analyzeIndexBtn', false);
