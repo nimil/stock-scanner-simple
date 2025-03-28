@@ -71,6 +71,9 @@ class StockAnalyzer(BaseAnalyzer):
                                   end_date=end_date,
                                   adjust="qfq")
             
+            if df.empty:
+                raise Exception(f"未获取到股票 {stock_code} 的数据")
+            
             # 重命名列名以匹配分析需求
             df = df.rename(columns={
                 "日期": "date",
@@ -90,6 +93,9 @@ class StockAnalyzer(BaseAnalyzer):
             
             # 删除空值
             df = df.dropna()
+            
+            if df.empty:
+                raise Exception(f"股票 {stock_code} 的数据处理后为空")
             
             return df.sort_values('date')
             
@@ -111,6 +117,9 @@ class StockAnalyzer(BaseAnalyzer):
                                     end_date=end_date,
                                     adjust="qfq")
             
+            if df.empty:
+                raise Exception(f"未获取到ETF {etf_code} 的数据")
+            
             # 重命名列名以匹配分析需求
             df = df.rename(columns={
                 "日期": "date",
@@ -130,6 +139,9 @@ class StockAnalyzer(BaseAnalyzer):
             
             # 删除空值
             df = df.dropna()
+            
+            if df.empty:
+                raise Exception(f"ETF {etf_code} 的数据处理后为空")
             
             return df.sort_values('date')
             
@@ -537,6 +549,9 @@ class StockAnalyzer(BaseAnalyzer):
                                   start_date=start_date, 
                                   end_date=end_date)
             
+            if df.empty:
+                raise Exception(f"未获取到指数 {index_code} 的数据")
+            
             # 重命名列名以匹配分析需求
             df = df.rename(columns={
                 "日期": "date",
@@ -556,6 +571,9 @@ class StockAnalyzer(BaseAnalyzer):
             
             # 删除空值
             df = df.dropna()
+            
+            if df.empty:
+                raise Exception(f"指数 {index_code} 的数据处理后为空")
             
             return df.sort_values('date')
             

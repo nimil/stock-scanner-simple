@@ -227,8 +227,13 @@
             let html = '';
 
             results.forEach(result => {
-                // 确定显示的标题（股票或ETF）
-                const assetType = result.stock_name.includes('ETF') ? 'ETF基金' : '股票';
+                // 确定显示的标题（股票、ETF或指数）
+                let assetType = '股票';
+                if (result.stock_name.includes('ETF')) {
+                    assetType = 'ETF基金';
+                } else if (result.stock_name.includes('指数')) {
+                    assetType = '指数';
+                }
                 
                 html += `
 <div class="mb-12 result-item" data-code="${result.stock_code}" data-name="${result.stock_name}">
@@ -322,6 +327,11 @@
             });
 
             resultContent.innerHTML = html;
+            
+            // 重置分析状态，允许用户继续分析
+            isAnalyzing = false;
+            setLoading('analyzeSingleBtn', false);
+            setLoading('analyzeIndexBtn', false);
         }
         
         // PDF导出功能
